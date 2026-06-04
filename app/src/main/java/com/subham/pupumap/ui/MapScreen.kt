@@ -2,7 +2,11 @@ package com.subham.pupumap.ui
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.location.Geocoder
+import android.location.LocationManager
+import android.provider.Settings
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -16,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.subham.pupumap.model.OsmPlace
 import com.subham.pupumap.network.BackendConfig
 import com.subham.pupumap.network.RetrofitClient
@@ -26,11 +32,22 @@ import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
+import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.PropertyFactory.circleBlur
+import org.maplibre.android.style.layers.PropertyFactory.circleColor
+import org.maplibre.android.style.layers.PropertyFactory.circleOpacity
+import org.maplibre.android.style.layers.PropertyFactory.circleRadius
+import org.maplibre.android.style.layers.PropertyFactory.circleStrokeColor
+import org.maplibre.android.style.layers.PropertyFactory.circleStrokeWidth
+import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.Point
 import java.util.Locale
 
 @Composable
 fun MapScreen(
     hasLocationPermission: Boolean,
+    onRequestLocationPermission: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -40,6 +57,78 @@ fun MapScreen(
     var addressValue by remember { mutableStateOf("Finding your exact place...") }
     var coordinateValue by remember { mutableStateOf("Waiting for GPS") }
     var areaValue by remember { mutableStateOf("Waiting for GPS") }
+    var hasCenteredOnUser by remember { mutableStateOf(false) }
+
+    fun showLocationPermissionNeeded() {
+        addressValue = "Location permission needed"
+        coordinateValue = "Allow location access for accurate map"
+        areaValue = "Permission required"
+    }
+
+    fun showLocationServicesOff() {
+        addressValue = "Location is turned off"
+        coordinateValue = "Turn on location for accurate map"
+        areaValue = "Enable device location"
+    }
+
+    fun showLocationUnavailable() {
+        addressValue = "Current location unavailable"
+        coordinateValue = "Try again near a window or open area"
+        areaValue = "GPS unavailable"
+    }
+
+    fun requestAccurateCurrentLocation(showPermissionPrompt: Boolean) {
+        if (!hasLocationPermission) {
+            showLocationPermissionNeeded()
+            if (showPermissionPrompt) {
+                onRequestLocationPermission()
+            }
+            return
+        }
+
+        if (!isLocationServicesEnabled(context)) {
+            showLocationServicesOff()
+            if (showPermissionPrompt) {
+                Toast.makeText(
+                    context,
+                    "Turn on location services for accurate map",
+                    Toast.LENGTH_SHORT
+                ).show()
+                context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+            }
+            return
+        }
+
+        val map = mapHolder[0] ?: return
+        addressValue = "Finding your exact place..."
+        coordinateValue = "Getting fresh GPS fix"
+        areaValue = "Waiting for GPS"
+
+        requestCurrentLocation(
+            context = context,
+            map = map,
+            animateCamera = true,
+            onLocationFound = { location ->
+                userLocation = location
+                hasCenteredOnUser = true
+            },
+            onLocationUnavailable = {
+                showLocationUnavailable()
+                Toast.makeText(
+                    context,
+                    "Unable to get current location",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        )
+    }
+
+    LaunchedEffect(hasLocationPermission) {
+        when {
+            !hasLocationPermission -> showLocationPermissionNeeded()
+            !isLocationServicesEnabled(context) -> showLocationServicesOff()
+        }
+    }
 
     LaunchedEffect(Unit) {
         try {
@@ -111,58 +200,154 @@ fun MapScreen(
                                 )
                             }
 
-                            if (hasLocationPermission) {
-                                addUserLocationMarker(context, map) { location ->
-                                    userLocation = location
-                                }
+                            if (hasLocationPermission && !hasCenteredOnUser) {
+                                requestAccurateCurrentLocation(showPermissionPrompt = false)
                             }
                         }
                     }
                 }
             },
-            update = { mapView ->
-                mapView.getMapAsync { map ->
-                    if (hasLocationPermission) {
-                        addUserLocationMarker(mapView.context, map) { location ->
-                            userLocation = location
-                        }
-                    }
-                }
-            }
+            update = {}
         )
 
         MapScreenDesign(
             addressValue = addressValue,
             coordinateValue = coordinateValue,
-            areaValue = areaValue
+            areaValue = areaValue,
+            onCurrentLocationClick = {
+                requestAccurateCurrentLocation(showPermissionPrompt = true)
+            }
         )
     }
 }
 
 @SuppressLint("MissingPermission")
-private fun addUserLocationMarker(
+private fun requestCurrentLocation(
     context: Context,
     map: MapLibreMap,
-    onLocationFound: (LatLng) -> Unit
+    animateCamera: Boolean,
+    onLocationFound: (LatLng) -> Unit,
+    onLocationUnavailable: () -> Unit
+) {
+    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+    val cancellationTokenSource = CancellationTokenSource()
+
+    fusedLocationClient.getCurrentLocation(
+        Priority.PRIORITY_HIGH_ACCURACY,
+        cancellationTokenSource.token
+    ).addOnSuccessListener { location ->
+        if (location != null) {
+            val userLatLng = LatLng(location.latitude, location.longitude)
+            updateUserLocationIndicator(map, userLatLng)
+            onLocationFound(userLatLng)
+
+            if (animateCamera) {
+                recenterMap(map, userLatLng)
+            }
+        } else {
+            requestLastKnownLocationFallback(
+                context = context,
+                map = map,
+                animateCamera = animateCamera,
+                onLocationFound = onLocationFound,
+                onLocationUnavailable = onLocationUnavailable
+            )
+        }
+    }.addOnFailureListener {
+        requestLastKnownLocationFallback(
+            context = context,
+            map = map,
+            animateCamera = animateCamera,
+            onLocationFound = onLocationFound,
+            onLocationUnavailable = onLocationUnavailable
+        )
+    }
+}
+
+@SuppressLint("MissingPermission")
+private fun requestLastKnownLocationFallback(
+    context: Context,
+    map: MapLibreMap,
+    animateCamera: Boolean,
+    onLocationFound: (LatLng) -> Unit,
+    onLocationUnavailable: () -> Unit
 ) {
     val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
     fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-        if (location != null) {
-            val userLatLng = LatLng(location.latitude, location.longitude)
-            onLocationFound(userLatLng)
+        if (location == null) {
+            onLocationUnavailable()
+            return@addOnSuccessListener
+        }
 
-            map.animateCamera(
-                CameraUpdateFactory.newCameraPosition(
-                    CameraPosition.Builder()
-                        .target(userLatLng)
-                        .zoom(14.0)
-                        .build()
-                ),
-                2000
+        val userLatLng = LatLng(location.latitude, location.longitude)
+        updateUserLocationIndicator(map, userLatLng)
+        onLocationFound(userLatLng)
+
+        if (animateCamera) {
+            recenterMap(map, userLatLng)
+        }
+    }.addOnFailureListener {
+        onLocationUnavailable()
+    }
+}
+
+private fun recenterMap(map: MapLibreMap, location: LatLng) {
+    map.animateCamera(
+        CameraUpdateFactory.newCameraPosition(
+            CameraPosition.Builder()
+                .target(location)
+                .zoom(16.5)
+                .build()
+        ),
+        1400
+    )
+}
+
+private fun updateUserLocationIndicator(map: MapLibreMap, location: LatLng) {
+    val feature = Feature.fromGeometry(Point.fromLngLat(location.longitude, location.latitude))
+
+    map.getStyle { style ->
+        val pulseSource = style.getSourceAs<GeoJsonSource>("user-location-pulse-source")
+        if (pulseSource == null) {
+            style.addSource(GeoJsonSource("user-location-pulse-source", feature))
+            style.addLayer(
+                CircleLayer("user-location-pulse", "user-location-pulse-source").withProperties(
+                    circleColor("#00D9FF"),
+                    circleRadius(20f),
+                    circleOpacity(0.18f),
+                    circleBlur(0.35f)
+                )
             )
+        } else {
+            pulseSource.setGeoJson(feature)
+        }
+
+        val dotSource = style.getSourceAs<GeoJsonSource>("user-location-dot-source")
+        if (dotSource == null) {
+            style.addSource(GeoJsonSource("user-location-dot-source", feature))
+            style.addLayer(
+                CircleLayer("user-location-dot", "user-location-dot-source").withProperties(
+                    circleColor("#00D9FF"),
+                    circleRadius(6.5f),
+                    circleStrokeColor("#F2FFFFFF"),
+                    circleStrokeWidth(2.0f),
+                    circleOpacity(1.0f)
+                )
+            )
+        } else {
+            dotSource.setGeoJson(feature)
         }
     }
+}
+
+private fun isLocationServicesEnabled(context: Context): Boolean {
+    val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+    return runCatching {
+        locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+            locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }.getOrDefault(false)
 }
 
 private data class CurrentAddress(

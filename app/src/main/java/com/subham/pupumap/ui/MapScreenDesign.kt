@@ -4,6 +4,7 @@ import android.os.Build
 import android.view.WindowInsets as AndroidWindowInsets
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,7 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val GlassPanel = Color(0xCC101820)
+private val GlassPanel = Color(0xD5101820)
 private val GlassPanelSoft = Color(0x99101820)
 private val GlassBorder = Color(0x33FFFFFF)
 private val TextPrimary = Color(0xF2FFFFFF)
@@ -48,7 +49,8 @@ private val AmberPin = Color(0xFFFFC857)
 fun MapScreenDesign(
     addressValue: String = "Finding your exact place...",
     coordinateValue: String = "Waiting for GPS",
-    areaValue: String = "Detecting area"
+    areaValue: String = "Detecting area",
+    onCurrentLocationClick: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -62,7 +64,8 @@ fun MapScreenDesign(
         CurrentLocationButton(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .padding(bottom = 80.dp)
+                .padding(bottom = 80.dp),
+            onClick = onCurrentLocationClick
         )
 
         CurrentLocationSheet(
@@ -154,9 +157,15 @@ private fun SearchBar(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun CurrentLocationButton(modifier: Modifier = Modifier) {
+private fun CurrentLocationButton(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     Box(modifier = modifier) {
-        CircleIconButton(size = 52.dp) {
+        CircleIconButton(
+            size = 52.dp,
+            modifier = Modifier.clickable(onClick = onClick)
+        ) {
             Icon(
                 imageVector = Icons.Outlined.MyLocation,
                 contentDescription = "Current location",
@@ -193,16 +202,16 @@ private fun CurrentLocationSheet(
             .fillMaxWidth()
             .background(
                 color = GlassPanel,
-                shape = RoundedCornerShape(28.dp)
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
             )
             .border(
                 width = 1.dp,
                 color = GlassBorder,
-                shape = RoundedCornerShape(28.dp)
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
             )
             .padding(
                 start = 18.dp,
-                top = 16.dp,
+                top = 14.dp,
                 end = 18.dp,
                 bottom = 16.dp + navBarPadding
             )
@@ -235,7 +244,7 @@ private fun CurrentLocationSheet(
                     fontWeight = FontWeight.SemiBold
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(7.dp))
 
                 Text(
                     text = "Address",
@@ -255,7 +264,7 @@ private fun CurrentLocationSheet(
                     maxLines = 2
                 )
 
-                Spacer(modifier = Modifier.height(5.dp))
+                Spacer(modifier = Modifier.height(7.dp))
 
                 Text(
                     text = coordinateValue,
@@ -271,7 +280,7 @@ private fun CurrentLocationSheet(
 
         AreaPanel(
             value = areaValue,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
@@ -369,10 +378,11 @@ private fun AreaPanel(
 @Composable
 private fun CircleIconButton(
     size: androidx.compose.ui.unit.Dp = 56.dp,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(size)
             .background(
                 color = GlassPanelSoft,

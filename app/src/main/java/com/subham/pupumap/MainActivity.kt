@@ -53,6 +53,9 @@ class MainActivity : ComponentActivity() {
             PupumapTheme {
                 MapScreen(
                     hasLocationPermission = hasLocationPermission,
+                    onRequestLocationPermission = {
+                        requestLocationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                    },
                     modifier = Modifier.fillMaxSize()
                 )
             }
