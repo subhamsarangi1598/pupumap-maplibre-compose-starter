@@ -1,6 +1,7 @@
 package com.subham.pupumap
 
 import android.Manifest
+import android.app.Activity
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
@@ -8,6 +9,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
@@ -22,11 +24,20 @@ import org.maplibre.android.MapLibre
 class MainActivity : ComponentActivity() {
 
     private var hasLocationPermission by mutableStateOf(false)
+    private var locationSettingsResolutionCount by mutableStateOf(0)
 
     private val requestLocationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         hasLocationPermission = granted
+    }
+
+    private val enableLocationSettings = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            locationSettingsResolutionCount += 1
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,6 +67,10 @@ class MainActivity : ComponentActivity() {
                     onRequestLocationPermission = {
                         requestLocationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                     },
+                    onResolveLocationSettings = { request: IntentSenderRequest ->
+                        enableLocationSettings.launch(request)
+                    },
+                    locationSettingsResolutionCount = locationSettingsResolutionCount,
                     modifier = Modifier.fillMaxSize()
                 )
             }

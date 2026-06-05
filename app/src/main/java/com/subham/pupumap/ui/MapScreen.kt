@@ -2,11 +2,10 @@ package com.subham.pupumap.ui
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.Intent
 import android.location.Geocoder
 import android.location.LocationManager
-import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.result.IntentSenderRequest
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -19,10 +18,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.subham.pupumap.model.OsmPlace
+import com.subham.pupumap.model.SearchResult
 import com.subham.pupumap.network.BackendConfig
 import com.subham.pupumap.network.RetrofitClient
 import kotlinx.coroutines.Dispatchers
@@ -43,11 +46,18 @@ import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.Point
 import java.util.Locale
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 @Composable
 fun MapScreen(
     hasLocationPermission: Boolean,
     onRequestLocationPermission: () -> Unit,
+    onResolveLocationSettings: (IntentSenderRequest) -> Unit,
+    locationSettingsResolutionCount: Int,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -58,6 +68,8 @@ fun MapScreen(
     var coordinateValue by remember { mutableStateOf("Waiting for GPS") }
     var areaValue by remember { mutableStateOf("Waiting for GPS") }
     var hasCenteredOnUser by remember { mutableStateOf(false) }
+    var selectedPlace by remember { mutableStateOf<SearchResult?>(null) }
+    var isRoutePreviewOpen by remember { mutableStateOf(false) }
 
     fun showLocationPermissionNeeded() {
         addressValue = "Location permission needed"
@@ -86,37 +98,43 @@ fun MapScreen(
             return
         }
 
-        if (!isLocationServicesEnabled(context)) {
-            showLocationServicesOff()
-            if (showPermissionPrompt) {
+        val map = mapHolder[0] ?: return
+        ensureHighAccuracyLocationSettings(
+            context = context,
+            onReady = {
+                addressValue = "Finding your exact place..."
+                coordinateValue = "Getting fresh GPS fix"
+                areaValue = "Waiting for GPS"
+
+                requestCurrentLocation(
+                    context = context,
+                    map = map,
+                    animateCamera = true,
+                    onLocationFound = { location ->
+                        userLocation = location
+                        hasCenteredOnUser = true
+                    },
+                    onLocationUnavailable = {
+                        showLocationUnavailable()
+                        Toast.makeText(
+                            context,
+                            "Unable to get current location",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                )
+            },
+            onResolutionRequired = { request ->
+                showLocationServicesOff()
+                if (showPermissionPrompt) {
+                    onResolveLocationSettings(request)
+                }
+            },
+            onUnavailable = {
+                showLocationServicesOff()
                 Toast.makeText(
                     context,
                     "Turn on location services for accurate map",
-                    Toast.LENGTH_SHORT
-                ).show()
-                context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-            }
-            return
-        }
-
-        val map = mapHolder[0] ?: return
-        addressValue = "Finding your exact place..."
-        coordinateValue = "Getting fresh GPS fix"
-        areaValue = "Waiting for GPS"
-
-        requestCurrentLocation(
-            context = context,
-            map = map,
-            animateCamera = true,
-            onLocationFound = { location ->
-                userLocation = location
-                hasCenteredOnUser = true
-            },
-            onLocationUnavailable = {
-                showLocationUnavailable()
-                Toast.makeText(
-                    context,
-                    "Unable to get current location",
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -127,6 +145,12 @@ fun MapScreen(
         when {
             !hasLocationPermission -> showLocationPermissionNeeded()
             !isLocationServicesEnabled(context) -> showLocationServicesOff()
+        }
+    }
+
+    LaunchedEffect(locationSettingsResolutionCount) {
+        if (locationSettingsResolutionCount > 0 && hasLocationPermission) {
+            requestAccurateCurrentLocation(showPermissionPrompt = false)
         }
     }
 
@@ -216,9 +240,67 @@ fun MapScreen(
             areaValue = areaValue,
             onCurrentLocationClick = {
                 requestAccurateCurrentLocation(showPermissionPrompt = true)
+            },
+            selectedPlace = selectedPlace,
+            selectedPlaceDistance = formatDistanceFromUser(userLocation, selectedPlace),
+            currentLatitude = userLocation?.latitude,
+            currentLongitude = userLocation?.longitude,
+            isRoutePreviewOpen = isRoutePreviewOpen,
+            onSearchResultSelected = { result ->
+                val map = mapHolder[0] ?: return@MapScreenDesign
+                selectedPlace = result
+                isRoutePreviewOpen = false
+                focusSearchResult(map, result)
+            },
+            onClearSelectedPlace = {
+                selectedPlace = null
+                isRoutePreviewOpen = false
+                mapHolder[0]?.let { clearDestinationIndicator(it) }
+            },
+            onDirectionsClick = {
+                isRoutePreviewOpen = true
+            },
+            onChangeRouteClick = {
+                isRoutePreviewOpen = false
+            },
+            onStartRouteClick = {
+                Toast.makeText(
+                    context,
+                    "Route and ETA coming next",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         )
     }
+}
+
+private fun ensureHighAccuracyLocationSettings(
+    context: Context,
+    onReady: () -> Unit,
+    onResolutionRequired: (IntentSenderRequest) -> Unit,
+    onUnavailable: () -> Unit
+) {
+    val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000L)
+        .setMinUpdateIntervalMillis(1000L)
+        .build()
+
+    val settingsRequest = LocationSettingsRequest.Builder()
+        .addLocationRequest(locationRequest)
+        .setAlwaysShow(true)
+        .build()
+
+    LocationServices.getSettingsClient(context)
+        .checkLocationSettings(settingsRequest)
+        .addOnSuccessListener {
+            onReady()
+        }
+        .addOnFailureListener { exception ->
+            if (exception is ResolvableApiException) {
+                onResolutionRequired(IntentSenderRequest.Builder(exception.resolution).build())
+            } else {
+                onUnavailable()
+            }
+        }
 }
 
 @SuppressLint("MissingPermission")
@@ -302,6 +384,67 @@ private fun recenterMap(map: MapLibreMap, location: LatLng) {
         ),
         1400
     )
+}
+
+private fun focusSearchResult(map: MapLibreMap, result: SearchResult) {
+    val location = LatLng(result.latitude, result.longitude)
+    updateDestinationIndicator(map, location)
+
+    map.animateCamera(
+        CameraUpdateFactory.newCameraPosition(
+            CameraPosition.Builder()
+                .target(location)
+                .zoom(16.0)
+                .build()
+        ),
+        1300
+    )
+}
+
+private fun updateDestinationIndicator(map: MapLibreMap, location: LatLng) {
+    val feature = Feature.fromGeometry(Point.fromLngLat(location.longitude, location.latitude))
+
+    map.getStyle { style ->
+        val haloSource = style.getSourceAs<GeoJsonSource>("destination-halo-source")
+        if (haloSource == null) {
+            style.addSource(GeoJsonSource("destination-halo-source", feature))
+            style.addLayer(
+                CircleLayer("destination-halo", "destination-halo-source").withProperties(
+                    circleColor("#FFC857"),
+                    circleRadius(18f),
+                    circleOpacity(0.20f),
+                    circleBlur(0.25f)
+                )
+            )
+        } else {
+            haloSource.setGeoJson(feature)
+        }
+
+        val dotSource = style.getSourceAs<GeoJsonSource>("destination-dot-source")
+        if (dotSource == null) {
+            style.addSource(GeoJsonSource("destination-dot-source", feature))
+            style.addLayer(
+                CircleLayer("destination-dot", "destination-dot-source").withProperties(
+                    circleColor("#FFC857"),
+                    circleRadius(7.5f),
+                    circleStrokeColor("#F2FFFFFF"),
+                    circleStrokeWidth(2.0f),
+                    circleOpacity(1.0f)
+                )
+            )
+        } else {
+            dotSource.setGeoJson(feature)
+        }
+    }
+}
+
+private fun clearDestinationIndicator(map: MapLibreMap) {
+    map.getStyle { style ->
+        runCatching { style.removeLayer("destination-dot") }
+        runCatching { style.removeLayer("destination-halo") }
+        runCatching { style.removeSource("destination-dot-source") }
+        runCatching { style.removeSource("destination-halo-source") }
+    }
 }
 
 private fun updateUserLocationIndicator(map: MapLibreMap, location: LatLng) {
@@ -409,4 +552,42 @@ private fun formatCoordinates(location: LatLng): String {
         location.latitude,
         location.longitude
     )
+}
+
+private fun formatDistanceFromUser(userLocation: LatLng?, selectedPlace: SearchResult?): String {
+    if (userLocation == null || selectedPlace == null) {
+        return "Distance needs current location"
+    }
+
+    val distanceMeters = haversineMeters(
+        startLatitude = userLocation.latitude,
+        startLongitude = userLocation.longitude,
+        endLatitude = selectedPlace.latitude,
+        endLongitude = selectedPlace.longitude
+    )
+
+    return if (distanceMeters < 1000) {
+        "${distanceMeters.roundToInt()} m away"
+    } else {
+        String.format(Locale.US, "%.1f km away", distanceMeters / 1000.0)
+    }
+}
+
+private fun haversineMeters(
+    startLatitude: Double,
+    startLongitude: Double,
+    endLatitude: Double,
+    endLongitude: Double
+): Double {
+    val earthRadiusMeters = 6371000.0
+    val startLatRad = Math.toRadians(startLatitude)
+    val endLatRad = Math.toRadians(endLatitude)
+    val deltaLatRad = Math.toRadians(endLatitude - startLatitude)
+    val deltaLngRad = Math.toRadians(endLongitude - startLongitude)
+
+    val haversine = sin(deltaLatRad / 2) * sin(deltaLatRad / 2) +
+        cos(startLatRad) * cos(endLatRad) *
+        sin(deltaLngRad / 2) * sin(deltaLngRad / 2)
+
+    return earthRadiusMeters * 2 * atan2(sqrt(haversine), sqrt(1 - haversine))
 }
