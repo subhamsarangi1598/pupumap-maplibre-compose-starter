@@ -21,14 +21,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Directions
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Remove
@@ -64,6 +66,8 @@ private val TextPrimary = Color(0xF2FFFFFF)
 private val TextSecondary = Color(0xB8FFFFFF)
 private val NeonCyan = Color(0xFF00D9FF)
 private val AmberPin = Color(0xFFFFC857)
+private val SuccessGreen = Color(0xFF41E6A4)
+private val SoftRed = Color(0xFFFF6B8A)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,11 +83,14 @@ fun MapScreenDesign(
     currentLatitude: Double? = null,
     currentLongitude: Double? = null,
     isRoutePreviewOpen: Boolean = false,
+    isNavigationActive: Boolean = false,
     onSearchResultSelected: (SearchResult) -> Unit = {},
     onClearSelectedPlace: () -> Unit = {},
     onDirectionsClick: () -> Unit = {},
     onChangeRouteClick: () -> Unit = {},
     onStartRouteClick: () -> Unit = {},
+    onStopNavigationClick: () -> Unit = {},
+    onRecenterNavigationClick: () -> Unit = {},
     onZoomInClick: () -> Unit = {},
     onZoomOutClick: () -> Unit = {},
     onStyleSwitchClick: () -> Unit = {}
@@ -114,22 +121,59 @@ fun MapScreenDesign(
                 .fillMaxSize()
                 .padding(top = statusBarPadding + 14.dp, start = 14.dp, end = 14.dp)
         ) {
-            TopSearchOverlay(
-                modifier = Modifier.align(Alignment.TopCenter),
-                onSearchClick = { isSearchOpen = true }
-            )
+            if (isNavigationActive && selectedPlace != null) {
+                ActiveNavigationTopCard(
+                    selectedPlace = selectedPlace,
+                    roadDuration = roadDurationValue,
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
+            } else {
+                TopSearchOverlay(
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    onSearchClick = { isSearchOpen = true }
+                )
+            }
 
-            MapControlsColumn(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(bottom = 120.dp),
-                onCurrentLocationClick = onCurrentLocationClick,
-                onZoomInClick = onZoomInClick,
-                onZoomOutClick = onZoomOutClick,
-                onStyleSwitchClick = onStyleSwitchClick
-            )
+            if (isNavigationActive) {
+                CircleIconButton(
+                    size = 54.dp,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(bottom = 90.dp)
+                        .clickable(onClick = onRecenterNavigationClick)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.MyLocation,
+                        contentDescription = "Recenter route",
+                        tint = NeonCyan,
+                        modifier = Modifier.size(23.dp)
+                    )
+                }
+            } else {
+                MapControlsColumn(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(bottom = 120.dp),
+                    onCurrentLocationClick = onCurrentLocationClick,
+                    onZoomInClick = onZoomInClick,
+                    onZoomOutClick = onZoomOutClick,
+                    onStyleSwitchClick = onStyleSwitchClick
+                )
+            }
 
             when {
+                isNavigationActive && selectedPlace != null -> {
+                    ActiveNavigationBottomCard(
+                        selectedPlace = selectedPlace,
+                        roadDistance = roadDistanceValue,
+                        roadDuration = roadDurationValue,
+                        straightLineDistance = selectedPlaceDistance,
+                        onStopClick = onStopNavigationClick,
+                        onRecenterClick = onRecenterNavigationClick,
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    )
+                }
+
                 selectedPlace == null -> {
                     CurrentLocationSheet(
                         addressValue = addressValue,
@@ -158,7 +202,7 @@ fun MapScreenDesign(
             }
         }
 
-        if (selectedPlace != null && !isRoutePreviewOpen) {
+        if (selectedPlace != null && !isRoutePreviewOpen && !isNavigationActive) {
             ModalBottomSheet(
                 onDismissRequest = {
                     onClearSelectedPlace()
@@ -183,7 +227,7 @@ fun MapScreenDesign(
             }
         }
 
-        if (isSearchOpen) {
+        if (isSearchOpen && !isNavigationActive) {
             SearchOverlay(
                 onClose = { isSearchOpen = false },
                 onResultSelected = { result ->
@@ -195,6 +239,271 @@ fun MapScreenDesign(
                 modifier = Modifier.fillMaxSize()
             )
         }
+    }
+}
+
+@Composable
+private fun ActiveNavigationTopCard(
+    selectedPlace: SearchResult,
+    roadDuration: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(GlassPanel, RoundedCornerShape(26.dp))
+            .border(1.dp, Color(0x6600D9FF), RoundedCornerShape(26.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .background(Color(0x2200D9FF), CircleShape)
+                .border(1.dp, Color(0x8800D9FF), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Route,
+                contentDescription = null,
+                tint = NeonCyan,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                LiveRoutePill()
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Text(
+                    text = if (roadDuration.isNotBlank()) "Arrive in $roadDuration" else "Route active",
+                    color = NeonCyan,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+            }
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Text(
+                text = "Continue to ${selectedPlace.name}",
+                color = TextPrimary,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActiveNavigationBottomCard(
+    selectedPlace: SearchResult,
+    roadDistance: String,
+    roadDuration: String,
+    straightLineDistance: String,
+    onStopClick: () -> Unit,
+    onRecenterClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val view = LocalView.current
+    val density = LocalDensity.current
+    val navBarPadding = with(density) {
+        val bottomInset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            view.rootWindowInsets
+                ?.getInsets(AndroidWindowInsets.Type.navigationBars())
+                ?.bottom ?: 0
+        } else {
+            @Suppress("DEPRECATION")
+            view.rootWindowInsets?.systemWindowInsetBottom ?: 0
+        }
+        bottomInset.toDp()
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                color = Color(0xE6111821),
+                shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
+            )
+            .border(
+                width = 1.dp,
+                color = Color(0x6600D9FF),
+                shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
+            )
+            .padding(start = 18.dp, top = 14.dp, end = 18.dp, bottom = 16.dp + navBarPadding)
+    ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .size(width = 42.dp, height = 4.dp)
+                .background(Color(0x5500D9FF), RoundedCornerShape(999.dp))
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = if (roadDuration.isNotBlank()) roadDuration else "--",
+                    color = TextPrimary,
+                    fontSize = 34.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = "ETA to destination",
+                    color = TextSecondary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1
+                )
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = roadDistance.ifBlank { "Calculating" },
+                    color = NeonCyan,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = "road distance",
+                    color = TextSecondary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0x66131A24), RoundedCornerShape(18.dp))
+                .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(18.dp))
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(11.dp)
+                    .background(AmberPin, CircleShape)
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "To",
+                    color = Color(0x99FFFFFF),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Text(
+                    text = selectedPlace.name,
+                    color = TextPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+            }
+
+            Text(
+                text = straightLineDistance,
+                color = AmberPin,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            PlaceActionButton(
+                label = "Stop",
+                icon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = null,
+                        tint = TextPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                backgroundColor = Color(0x66FF3B5C),
+                borderColor = Color(0x99FF6B8A),
+                textColor = TextPrimary,
+                modifier = Modifier.weight(1f),
+                onClick = onStopClick
+            )
+
+            PlaceActionButton(
+                label = "Recenter",
+                icon = {
+                    Icon(
+                        imageVector = Icons.Outlined.MyLocation,
+                        contentDescription = null,
+                        tint = Color(0xFF031219),
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                backgroundColor = NeonCyan,
+                borderColor = NeonCyan,
+                textColor = Color(0xFF031219),
+                modifier = Modifier.weight(1f),
+                onClick = onRecenterClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun LiveRoutePill() {
+    Row(
+        modifier = Modifier
+            .background(SuccessGreen.copy(alpha = 0.16f), RoundedCornerShape(12.dp))
+            .border(1.dp, SuccessGreen.copy(alpha = 0.55f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(7.dp)
+                .background(SuccessGreen, CircleShape)
+        )
+
+        Spacer(modifier = Modifier.width(5.dp))
+
+        Text(
+            text = "LIVE ROUTE",
+            color = SuccessGreen,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
+        )
     }
 }
 
@@ -215,30 +524,46 @@ private fun TopSearchOverlay(
 
 @Composable
 private fun CategoryFilters() {
-    val categories = listOf("All", "Food", "Parks", "Museums", "Shopping", "Hotels")
-    var selectedCategory by remember { mutableStateOf("All") }
+    val categories = listOf(
+        MapCategory("All", NeonCyan),
+        MapCategory("Food", AmberPin),
+        MapCategory("Fuel", SuccessGreen),
+        MapCategory("Health", SoftRed),
+        MapCategory("ATM", Color(0xFF9BD7FF)),
+        MapCategory("Parks", Color(0xFF74E58A))
+    )
+    var selectedCategory by remember { mutableStateOf(categories.first().label) }
 
     LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(9.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         items(categories) { category ->
-            val isSelected = category == selectedCategory
-            val bgColor = if (isSelected) Color(0xFF0288D1) else GlassPanelSoft
-            val borderColor = if (isSelected) Color(0xFF81D4FA) else GlassBorder
+            val isSelected = category.label == selectedCategory
+            val bgColor = if (isSelected) category.color.copy(alpha = 0.24f) else GlassPanelSoft
+            val borderColor = if (isSelected) category.color.copy(alpha = 0.9f) else GlassBorder
             val textColor = if (isSelected) Color.White else TextPrimary
 
-            Box(
+            Row(
                 modifier = Modifier
-                    .background(color = bgColor, shape = RoundedCornerShape(16.dp))
-                    .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(16.dp))
-                    .clip(RoundedCornerShape(16.dp))
-                    .clickable { selectedCategory = category }
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                contentAlignment = Alignment.Center
+                    .height(38.dp)
+                    .background(color = bgColor, shape = RoundedCornerShape(19.dp))
+                    .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(19.dp))
+                    .clip(RoundedCornerShape(19.dp))
+                    .clickable { selectedCategory = category.label }
+                    .padding(horizontal = 13.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(if (isSelected) 9.dp else 7.dp)
+                        .background(category.color, CircleShape)
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
                 Text(
-                    text = category,
+                    text = category.label,
                     color = textColor,
                     fontSize = 13.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
@@ -247,6 +572,11 @@ private fun CategoryFilters() {
         }
     }
 }
+
+private data class MapCategory(
+    val label: String,
+    val color: Color
+)
 
 @Composable
 private fun SearchBar(
@@ -291,10 +621,10 @@ private fun SearchBar(
                 modifier = Modifier.weight(1f)
             )
 
-            SearchActionIcon {
+            SearchActionIcon(isMuted = true) {
                 Icon(
                     imageVector = Icons.Outlined.Mic,
-                    contentDescription = "Voice search",
+                    contentDescription = "Voice search coming soon",
                     tint = TextSecondary,
                     modifier = Modifier.size(20.dp)
                 )
@@ -302,12 +632,19 @@ private fun SearchBar(
 
             Spacer(modifier = Modifier.width(6.dp))
 
-            SearchActionIcon {
-                Icon(
-                    imageVector = Icons.Outlined.AccountCircle,
-                    contentDescription = "Profile",
-                    tint = TextPrimary,
-                    modifier = Modifier.size(23.dp)
+            Box(
+                modifier = Modifier
+                    .height(34.dp)
+                    .background(Color(0x2200D9FF), RoundedCornerShape(17.dp))
+                    .border(1.dp, Color(0x3300D9FF), RoundedCornerShape(17.dp))
+                    .padding(horizontal = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Live",
+                    color = NeonCyan,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -315,12 +652,15 @@ private fun SearchBar(
 }
 
 @Composable
-private fun SearchActionIcon(content: @Composable () -> Unit) {
+private fun SearchActionIcon(
+    isMuted: Boolean = false,
+    content: @Composable () -> Unit
+) {
     Box(
         modifier = Modifier
             .size(42.dp)
             .background(
-                color = Color(0x331D2A35),
+                color = if (isMuted) Color(0x221D2A35) else Color(0x331D2A35),
                 shape = CircleShape
             ),
         contentAlignment = Alignment.Center
@@ -395,10 +735,10 @@ private fun RoutePreviewSheet(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Route Preview",
+                    text = "Road route",
                     color = TextPrimary,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
                 )
 
                 Spacer(modifier = Modifier.height(5.dp))
@@ -410,6 +750,24 @@ private fun RoutePreviewSheet(
                     fontWeight = FontWeight.Medium,
                     maxLines = 1
                 )
+            }
+
+            if (roadDuration.isNotBlank()) {
+                Box(
+                    modifier = Modifier
+                        .background(Color(0x2200D9FF), RoundedCornerShape(18.dp))
+                        .border(1.dp, Color(0x6600D9FF), RoundedCornerShape(18.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = roadDuration,
+                        color = NeonCyan,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                }
             }
         }
 
@@ -443,7 +801,7 @@ private fun RoutePreviewSheet(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             PlaceActionButton(
-                label = "Start",
+                label = "Start route",
                 icon = {
                     Icon(
                         imageVector = Icons.Outlined.Route,
@@ -460,7 +818,7 @@ private fun RoutePreviewSheet(
             )
 
             PlaceActionButton(
-                label = "Change",
+                label = "Edit",
                 icon = {
                     Icon(
                         imageVector = Icons.Outlined.SwapVert,
@@ -613,7 +971,7 @@ private fun RouteMetric(
         Text(
             text = value,
             color = TextPrimary,
-            fontSize = 12.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1
         )
@@ -652,101 +1010,91 @@ private fun SelectedPlaceSheetExpandedContent(
                 bottom = 16.dp + navBarPadding
             )
     ) {
-        // Image Placeholder
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(160.dp)
+                .height(132.dp)
                 .background(
-                    color = Color(0x33FFFFFF),
-                    shape = RoundedCornerShape(16.dp)
+                    color = Color(0x22131A24),
+                    shape = RoundedCornerShape(22.dp)
+                )
+                .border(
+                    width = 1.dp,
+                    color = Color(0x33FFC857),
+                    shape = RoundedCornerShape(22.dp)
                 ),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.CenterStart
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Place,
-                contentDescription = null,
-                tint = Color(0x88FFFFFF),
-                modifier = Modifier.size(48.dp)
-            )
-            Text(
-                text = "Cover Image",
-                color = Color(0x88FFFFFF),
-                fontSize = 14.sp,
-                modifier = Modifier.padding(top = 70.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SelectedPlaceBadge(size = 64)
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = selectedPlace.name,
+                        color = TextPrimary,
+                        fontSize = 23.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2
+                    )
+
+                    Spacer(modifier = Modifier.height(7.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        PlaceTypePill(text = selectedPlace.subtitle, color = AmberPin)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        PlaceTypePill(text = selectedPlace.source, color = NeonCyan)
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        PlaceInfoCard(
+            title = "Distance",
+            value = distanceValue.ifBlank { "Location needed" },
+            accentColor = AmberPin
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        PlaceInfoCard(
+            title = "Coordinates",
+            value = formatSelectedPlaceCoordinates(selectedPlace),
+            accentColor = NeonCyan
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            SelectedPlaceBadge()
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = selectedPlace.name,
-                    color = TextPrimary,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "${selectedPlace.subtitle} - ${selectedPlace.source}",
-                    color = TextSecondary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 2
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Outlined.Directions,
-                        contentDescription = null,
-                        tint = AmberPin,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = distanceValue,
-                        color = AmberPin,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = formatSelectedPlaceCoordinates(selectedPlace),
-                    color = TextSecondary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "A beautiful and prominent location found in your search results. Come visit and explore the surroundings.",
-                    color = TextSecondary,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp
-                )
-            }
+            MiniActionChip(
+                label = "Save",
+                icon = { Icon(Icons.Outlined.FavoriteBorder, null, tint = TextPrimary, modifier = Modifier.size(17.dp)) },
+                modifier = Modifier.weight(1f)
+            )
+            MiniActionChip(
+                label = "Share",
+                icon = { Icon(Icons.Outlined.Share, null, tint = TextPrimary, modifier = Modifier.size(17.dp)) },
+                modifier = Modifier.weight(1f)
+            )
+            MiniActionChip(
+                label = "Info",
+                icon = { Icon(Icons.Outlined.Info, null, tint = TextPrimary, modifier = Modifier.size(17.dp)) },
+                modifier = Modifier.weight(1f)
+            )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -790,10 +1138,96 @@ private fun SelectedPlaceSheetExpandedContent(
 }
 
 @Composable
-private fun SelectedPlaceBadge() {
+private fun PlaceTypePill(
+    text: String,
+    color: Color
+) {
+    Text(
+        text = text.ifBlank { "Place" },
+        color = color,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        maxLines = 1,
+        modifier = Modifier
+            .background(color.copy(alpha = 0.14f), RoundedCornerShape(14.dp))
+            .border(1.dp, color.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+            .padding(horizontal = 9.dp, vertical = 5.dp)
+    )
+}
+
+@Composable
+private fun PlaceInfoCard(
+    title: String,
+    value: String,
+    accentColor: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0x66131A24), RoundedCornerShape(18.dp))
+            .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(18.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .background(accentColor, CircleShape)
+        )
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                color = Color(0x99FFFFFF),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = value,
+                color = TextPrimary,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun MiniActionChip(
+    label: String,
+    icon: @Composable () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .height(42.dp)
+            .background(Color(0x44131A24), RoundedCornerShape(16.dp))
+            .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(16.dp))
+            .padding(horizontal = 10.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        icon()
+        Spacer(modifier = Modifier.width(7.dp))
+        Text(
+            text = label,
+            color = TextPrimary,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun SelectedPlaceBadge(size: Int = 48) {
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(size.dp)
             .background(
                 color = Color(0x22FFC857),
                 shape = CircleShape
@@ -807,7 +1241,7 @@ private fun SelectedPlaceBadge() {
     ) {
         Box(
             modifier = Modifier
-                .size(30.dp)
+                .size((size * 0.62f).dp)
                 .background(
                     color = Color(0x33FFC857),
                     shape = CircleShape
@@ -818,7 +1252,7 @@ private fun SelectedPlaceBadge() {
                 imageVector = Icons.Outlined.Place,
                 contentDescription = null,
                 tint = AmberPin,
-                modifier = Modifier.size(19.dp)
+                modifier = Modifier.size((size * 0.4f).dp)
             )
         }
     }

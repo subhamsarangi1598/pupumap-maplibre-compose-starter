@@ -78,6 +78,7 @@ fun MapScreen(
     var hasCenteredOnUser by remember { mutableStateOf(false) }
     var selectedPlace by remember { mutableStateOf<SearchResult?>(null) }
     var isRoutePreviewOpen by remember { mutableStateOf(false) }
+    var isNavigationActive by remember { mutableStateOf(false) }
     var roadDistanceValue by remember { mutableStateOf("Calculating...") }
     var roadDurationValue by remember { mutableStateOf("") }
 
@@ -326,15 +327,18 @@ fun MapScreen(
             currentLatitude = userLocation?.latitude,
             currentLongitude = userLocation?.longitude,
             isRoutePreviewOpen = isRoutePreviewOpen,
+            isNavigationActive = isNavigationActive,
             onSearchResultSelected = { result ->
                 val map = mapHolder[0] ?: return@MapScreenDesign
                 selectedPlace = result
                 isRoutePreviewOpen = false
+                isNavigationActive = false
                 focusSearchResult(map, result)
             },
             onClearSelectedPlace = {
                 selectedPlace = null
                 isRoutePreviewOpen = false
+                isNavigationActive = false
                 mapHolder[0]?.let {
                     clearDestinationIndicator(it)
                     clearRouteFromMap(it)
@@ -345,14 +349,24 @@ fun MapScreen(
             },
             onChangeRouteClick = {
                 isRoutePreviewOpen = false
+                isNavigationActive = false
                 mapHolder[0]?.let { clearRouteFromMap(it) }
             },
             onStartRouteClick = {
-                Toast.makeText(
-                    context,
-                    "Route navigation started",
-                    Toast.LENGTH_SHORT
-                ).show()
+                isNavigationActive = true
+                userLocation?.let { location ->
+                    mapHolder[0]?.let { map -> recenterMap(map, location) }
+                }
+            },
+            onStopNavigationClick = {
+                isNavigationActive = false
+                isRoutePreviewOpen = false
+                mapHolder[0]?.let { clearRouteFromMap(it) }
+            },
+            onRecenterNavigationClick = {
+                userLocation?.let { location ->
+                    mapHolder[0]?.let { map -> recenterMap(map, location) }
+                }
             },
             onZoomInClick = {
                 mapHolder[0]?.let { map ->
