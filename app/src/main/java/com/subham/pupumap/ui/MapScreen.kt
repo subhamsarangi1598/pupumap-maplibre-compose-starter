@@ -36,14 +36,22 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory.circleBlur
 import org.maplibre.android.style.layers.PropertyFactory.circleColor
 import org.maplibre.android.style.layers.PropertyFactory.circleOpacity
 import org.maplibre.android.style.layers.PropertyFactory.circleRadius
 import org.maplibre.android.style.layers.PropertyFactory.circleStrokeColor
 import org.maplibre.android.style.layers.PropertyFactory.circleStrokeWidth
+import org.maplibre.android.style.layers.PropertyFactory.lineCap
+import org.maplibre.android.style.layers.PropertyFactory.lineColor
+import org.maplibre.android.style.layers.PropertyFactory.lineJoin
+import org.maplibre.android.style.layers.PropertyFactory.lineOpacity
+import org.maplibre.android.style.layers.PropertyFactory.lineWidth
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
+import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
 import java.util.Locale
 import kotlin.math.atan2
@@ -70,6 +78,8 @@ fun MapScreen(
     var hasCenteredOnUser by remember { mutableStateOf(false) }
     var selectedPlace by remember { mutableStateOf<SearchResult?>(null) }
     var isRoutePreviewOpen by remember { mutableStateOf(false) }
+    var roadDistanceValue by remember { mutableStateOf("Calculating...") }
+    var roadDurationValue by remember { mutableStateOf("") }
 
     fun showLocationPermissionNeeded() {
         addressValue = "Location permission needed"
@@ -180,6 +190,72 @@ fun MapScreen(
         }
     }
 
+    LaunchedEffect(osmPlaces.size) {
+        val map = mapHolder[0] ?: return@LaunchedEffect
+        if (osmPlaces.isNotEmpty()) {
+            updateOsmPlacesMarkers(map, osmPlaces)
+        }
+    }
+
+    LaunchedEffect(isRoutePreviewOpen, selectedPlace, userLocation) {
+        val map = mapHolder[0] ?: return@LaunchedEffect
+        val start = userLocation
+        val end = selectedPlace
+        if (isRoutePreviewOpen && start != null && end != null) {
+            roadDistanceValue = "Calculating..."
+            roadDurationValue = ""
+            try {
+                val startParam = "${start.longitude},${start.latitude}"
+                val endParam = "${end.longitude},${end.latitude}"
+                val response = RetrofitClient.api.getRoute(start = startParam, end = endParam)
+                val route = response.routes.firstOrNull()
+                if (route != null) {
+                    val distanceKm = route.distance / 1000.0
+                    val durationMin = (route.duration / 60.0).roundToInt()
+
+                    roadDistanceValue = if (distanceKm < 1.0) {
+                        "${route.distance.roundToInt()} m"
+                    } else {
+                        String.format(Locale.US, "%.1f km", distanceKm)
+                    }
+
+                    roadDurationValue = when {
+                        durationMin < 60 -> "$durationMin mins"
+                        else -> {
+                            val hours = durationMin / 60
+                            val mins = durationMin % 60
+                            if (mins > 0) "$hours hr $mins mins" else "$hours hr"
+                        }
+                    }
+
+                    val pointsJson = route.geometry.coordinates.joinToString(",") { coord ->
+                        "[${coord[0]}, ${coord[1]}]"
+                    }
+                    val geoJson = """
+                        {
+                            "type": "Feature",
+                            "geometry": {
+                                "type": "LineString",
+                                "coordinates": [$pointsJson]
+                            }
+                        }
+                    """.trimIndent()
+
+                    drawRouteOnMap(map, geoJson)
+                } else {
+                    roadDistanceValue = "Route error"
+                    roadDurationValue = "No routes"
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                roadDistanceValue = "Offline"
+                roadDurationValue = "Error"
+            }
+        } else {
+            clearRouteFromMap(map)
+        }
+    }
+
     LaunchedEffect(userLocation) {
         val location = userLocation ?: return@LaunchedEffect
 
@@ -210,6 +286,8 @@ fun MapScreen(
 
                         map.setStyle(BackendConfig.STYLE_URL) {
                             if (osmPlaces.isNotEmpty()) {
+                                updateOsmPlacesMarkers(map, osmPlaces)
+
                                 val firstPlace = osmPlaces.first()
                                 val fallbackLocation = LatLng(firstPlace.latitude, firstPlace.longitude)
 
@@ -243,6 +321,8 @@ fun MapScreen(
             },
             selectedPlace = selectedPlace,
             selectedPlaceDistance = formatDistanceFromUser(userLocation, selectedPlace),
+            roadDistanceValue = roadDistanceValue,
+            roadDurationValue = roadDurationValue,
             currentLatitude = userLocation?.latitude,
             currentLongitude = userLocation?.longitude,
             isRoutePreviewOpen = isRoutePreviewOpen,
@@ -255,18 +335,22 @@ fun MapScreen(
             onClearSelectedPlace = {
                 selectedPlace = null
                 isRoutePreviewOpen = false
-                mapHolder[0]?.let { clearDestinationIndicator(it) }
+                mapHolder[0]?.let {
+                    clearDestinationIndicator(it)
+                    clearRouteFromMap(it)
+                }
             },
             onDirectionsClick = {
                 isRoutePreviewOpen = true
             },
             onChangeRouteClick = {
                 isRoutePreviewOpen = false
+                mapHolder[0]?.let { clearRouteFromMap(it) }
             },
             onStartRouteClick = {
                 Toast.makeText(
                     context,
-                    "Route and ETA coming next",
+                    "Route navigation started",
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -590,4 +674,62 @@ private fun haversineMeters(
         sin(deltaLngRad / 2) * sin(deltaLngRad / 2)
 
     return earthRadiusMeters * 2 * atan2(sqrt(haversine), sqrt(1 - haversine))
+}
+
+private fun updateOsmPlacesMarkers(map: MapLibreMap, places: List<OsmPlace>) {
+    map.getStyle { style ->
+        val sourceId = "osm-places-source"
+        val layerId = "osm-places-layer"
+
+        runCatching { style.removeLayer(layerId) }
+        runCatching { style.removeSource(sourceId) }
+
+        val features = places.map { place ->
+            val point = Point.fromLngLat(place.longitude, place.latitude)
+            val feature = Feature.fromGeometry(point)
+            feature.addStringProperty("name", place.name ?: "Unnamed Place")
+            feature.addStringProperty("place", place.place)
+            feature
+        }
+
+        val featureCollection = FeatureCollection.fromFeatures(features)
+        style.addSource(GeoJsonSource(sourceId, featureCollection))
+
+        val circleLayer = CircleLayer(layerId, sourceId).withProperties(
+            circleColor("#00D9FF"),
+            circleRadius(6.5f),
+            circleStrokeColor("#FFFFFF"),
+            circleStrokeWidth(1.5f),
+            circleOpacity(0.85f)
+        )
+        style.addLayer(circleLayer)
+    }
+}
+
+private fun drawRouteOnMap(map: MapLibreMap, geoJson: String) {
+    map.getStyle { style ->
+        val sourceId = "route-source"
+        val layerId = "route-layer"
+
+        runCatching { style.removeLayer(layerId) }
+        runCatching { style.removeSource(sourceId) }
+
+        style.addSource(GeoJsonSource(sourceId, geoJson))
+
+        val lineLayer = LineLayer(layerId, sourceId).withProperties(
+            lineColor("#00D9FF"),
+            lineWidth(5f),
+            lineOpacity(0.85f),
+            lineJoin(Property.LINE_JOIN_ROUND),
+            lineCap(Property.LINE_CAP_ROUND)
+        )
+        style.addLayer(lineLayer)
+    }
+}
+
+private fun clearRouteFromMap(map: MapLibreMap) {
+    map.getStyle { style ->
+        runCatching { style.removeLayer("route-layer") }
+        runCatching { style.removeSource("route-source") }
+    }
 }

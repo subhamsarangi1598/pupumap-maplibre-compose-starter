@@ -62,6 +62,8 @@ fun MapScreenDesign(
     onCurrentLocationClick: () -> Unit = {},
     selectedPlace: SearchResult? = null,
     selectedPlaceDistance: String = "",
+    roadDistanceValue: String = "Calculating...",
+    roadDurationValue: String = "",
     currentLatitude: Double? = null,
     currentLongitude: Double? = null,
     isRoutePreviewOpen: Boolean = false,
@@ -121,6 +123,8 @@ fun MapScreenDesign(
                     RoutePreviewSheet(
                         selectedPlace = selectedPlace,
                         straightLineDistance = selectedPlaceDistance,
+                        roadDistance = roadDistanceValue,
+                        roadDuration = roadDurationValue,
                         fromValue = addressValue,
                         onStartClick = onStartRouteClick,
                         onChangeClick = onChangeRouteClick,
@@ -251,6 +255,8 @@ private fun SearchActionIcon(content: @Composable () -> Unit) {
 private fun RoutePreviewSheet(
     selectedPlace: SearchResult,
     straightLineDistance: String,
+    roadDistance: String,
+    roadDuration: String,
     fromValue: String,
     onStartClick: () -> Unit,
     onChangeClick: () -> Unit,
@@ -320,7 +326,7 @@ private fun RoutePreviewSheet(
                 Spacer(modifier = Modifier.height(5.dp))
 
                 Text(
-                    text = "Road route and ETA coming next",
+                    text = if (roadDuration.isNotBlank()) "ETA: $roadDuration" else "Calculating road route...",
                     color = TextSecondary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -348,7 +354,8 @@ private fun RoutePreviewSheet(
         Spacer(modifier = Modifier.height(14.dp))
 
         RouteMetricRow(
-            straightLineDistance = straightLineDistance
+            straightLineDistance = straightLineDistance,
+            roadDistance = roadDistance
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -473,7 +480,10 @@ private fun RoutePointRow(
 }
 
 @Composable
-private fun RouteMetricRow(straightLineDistance: String) {
+private fun RouteMetricRow(
+    straightLineDistance: String,
+    roadDistance: String
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -486,7 +496,7 @@ private fun RouteMetricRow(straightLineDistance: String) {
 
         RouteMetric(
             label = "Road route",
-            value = "Coming soon",
+            value = roadDistance,
             modifier = Modifier.weight(1f)
         )
     }

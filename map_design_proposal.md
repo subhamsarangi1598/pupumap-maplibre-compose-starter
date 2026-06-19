@@ -6,7 +6,7 @@ To transform Pupumap into a state-of-the-art interactive map experience, we prop
 
 Here is a mockup of the proposed modern mobile map interface:
 
-![Map UI Design Mockup](file:///C:/Users/subham/.gemini/antigravity-cli/brain/5a46b4d0-f7f1-4e8d-92ec-ad3443c02ce3/map_ui_design_mockup_1779873145012.png)
+![Map UI Design Mockup](../docs/screenshots/map-screen.png)
 
 ---
 
@@ -36,7 +36,7 @@ Floating Action Buttons (FABs) positioned on the right side of the screen:
 
 ## 💻 Technical Implementation Strategy
 
-We can structure [MapScreen.kt](file:///C:/Users/subham/Documents/subham-map/android/app/src/main/java/com/subham/pupumap/ui/MapScreen.kt) to place Compose UI components on top of the MapLibre `AndroidView` using a `Box` layout.
+We can structure `MapScreen.kt` to place Compose UI components on top of the MapLibre `AndroidView` using a `Box` layout.
 
 ### Proposed Code Architecture
 
@@ -105,7 +105,7 @@ fun MapScreen() {
 
 ## 🎨 Design Theme Parameters
 
-To align with the premium colors defined in [AppTheme.kt](file:///C:/Users/subham/Documents/subham-map/android/app/src/main/java/com/subham/pupumap/theme/AppTheme.kt):
+To align with the premium colors defined in `AppTheme.kt`:
 
 | Light Theme Value | Dark Theme Value | UI Component |
 | :--- | :--- | :--- |

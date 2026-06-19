@@ -1,6 +1,8 @@
 package com.subham.pupumap.network
 
+import com.subham.pupumap.BuildConfig
+
 object BackendConfig {
-    const val BASE_URL = "http://192.168.1.4:8080/"
-    const val STYLE_URL = "${BASE_URL}styles/style.json"
+    val BASE_URL: String = BuildConfig.BACKEND_BASE_URL
+    val STYLE_URL: String = "${BASE_URL}styles/style.json"
 }
