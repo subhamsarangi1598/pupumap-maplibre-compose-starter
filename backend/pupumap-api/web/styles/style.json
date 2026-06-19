@@ -1,0 +1,2842 @@
+{
+    "version": 8,
+    "name": "Pupumap Smart Labels",
+    "glyphs": "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+    "sources": {
+        "pupumap_vector": {
+            "type": "vector",
+            "tiles": [
+                "http://localhost:8080/tiles-vector/{z}/{x}/{y}.pbf"
+            ],
+            "minzoom": 0,
+            "maxzoom": 16
+        }
+    },
+    "layers": [
+        {
+            "id": "background",
+            "type": "background",
+            "paint": {
+                "background-color": "#0a0f14"
+            }
+        },
+        {
+            "id": "landuse-areas",
+            "type": "fill",
+            "source": "pupumap_vector",
+            "source-layer": "landuse_areas",
+            "minzoom": 8,
+            "paint": {
+                "fill-color": [
+                    "match",
+                    [
+                        "get",
+                        "landuse"
+                    ],
+                    "residential",
+                    "#101821",
+                    "commercial",
+                    "#171722",
+                    "retail",
+                    "#18151f",
+                    "industrial",
+                    "#1b1820",
+                    "education",
+                    "#141b24",
+                    "institutional",
+                    "#141b24",
+                    "cemetery",
+                    "#14211c",
+                    "farmland",
+                    "#162015",
+                    "farmyard",
+                    "#1b1e15",
+                    "orchard",
+                    "#142314",
+                    "#101820"
+                ],
+                "fill-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    8,
+                    0.16,
+                    13,
+                    0.34,
+                    16,
+                    0.46
+                ]
+            }
+        },
+        {
+            "id": "green-areas",
+            "type": "fill",
+            "source": "pupumap_vector",
+            "source-layer": "green_areas",
+            "minzoom": 6,
+            "paint": {
+                "fill-color": [
+                    "case",
+                    [
+                        "==",
+                        [
+                            "get",
+                            "boundary"
+                        ],
+                        "national_park"
+                    ],
+                    "#153820",
+                    [
+                        "in",
+                        [
+                            "get",
+                            "natural_value"
+                        ],
+                        [
+                            "literal",
+                            [
+                                "wood",
+                                "grassland",
+                                "scrub",
+                                "heath"
+                            ]
+                        ]
+                    ],
+                    "#17311d",
+                    [
+                        "in",
+                        [
+                            "get",
+                            "landuse"
+                        ],
+                        [
+                            "literal",
+                            [
+                                "forest",
+                                "recreation_ground",
+                                "grass",
+                                "meadow",
+                                "village_green",
+                                "allotments",
+                                "farmland",
+                                "orchard"
+                            ]
+                        ]
+                    ],
+                    "#17351f",
+                    "#16301d"
+                ],
+                "fill-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    6,
+                    0.22,
+                    12,
+                    0.42,
+                    16,
+                    0.58
+                ]
+            }
+        },
+        {
+            "id": "green-area-outline",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "green_areas",
+            "minzoom": 11,
+            "paint": {
+                "line-color": "#2b6b3d",
+                "line-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    11,
+                    0.18,
+                    16,
+                    0.42
+                ],
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    11,
+                    0.25,
+                    16,
+                    0.85
+                ]
+            }
+        },
+        {
+            "id": "water-fill",
+            "type": "fill",
+            "source": "pupumap_vector",
+            "source-layer": "water",
+            "paint": {
+                "fill-color": "#13384d",
+                "fill-opacity": 0.88
+            }
+        },
+        {
+            "id": "water-outline",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "water",
+            "paint": {
+                "line-color": "#1f5676",
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    5,
+                    0.2,
+                    10,
+                    0.45,
+                    15,
+                    0.8
+                ],
+                "line-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    5,
+                    0.35,
+                    10,
+                    0.55,
+                    15,
+                    0.75
+                ]
+            }
+        },
+        {
+            "id": "building-fill",
+            "type": "fill",
+            "source": "pupumap_vector",
+            "source-layer": "buildings",
+            "minzoom": 14,
+            "paint": {
+                "fill-color": [
+                    "match",
+                    [
+                        "get",
+                        "building"
+                    ],
+                    [
+                        "hospital",
+                        "clinic",
+                        "healthcare"
+                    ],
+                    "#25303a",
+                    [
+                        "school",
+                        "college",
+                        "university"
+                    ],
+                    "#222f3a",
+                    [
+                        "commercial",
+                        "retail",
+                        "office",
+                        "hotel"
+                    ],
+                    "#252837",
+                    [
+                        "industrial",
+                        "warehouse"
+                    ],
+                    "#2a252c",
+                    [
+                        "temple",
+                        "church",
+                        "mosque",
+                        "religious"
+                    ],
+                    "#2a2935",
+                    "#1b252e"
+                ],
+                "fill-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    14,
+                    0.48,
+                    16,
+                    0.74
+                ]
+            }
+        },
+        {
+            "id": "building-outline",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "buildings",
+            "minzoom": 15,
+            "paint": {
+                "line-color": "#31404c",
+                "line-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    15,
+                    0.38,
+                    16,
+                    0.58
+                ],
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    15,
+                    0.25,
+                    16,
+                    0.65
+                ]
+            }
+        },
+        {
+            "id": "boundary-state",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "boundary_lines",
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "admin_level"
+                ],
+                [
+                    "literal",
+                    [
+                        "2",
+                        "4"
+                    ]
+                ]
+            ],
+            "paint": {
+                "line-color": "#6b7d90",
+                "line-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    5,
+                    0.32,
+                    10,
+                    0.48,
+                    14,
+                    0.34
+                ],
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    5,
+                    0.65,
+                    10,
+                    1.1,
+                    14,
+                    1.6
+                ],
+                "line-dasharray": [
+                    3.0,
+                    1.8
+                ]
+            }
+        },
+        {
+            "id": "boundary-district",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "boundary_lines",
+            "minzoom": 8,
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "admin_level"
+                ],
+                [
+                    "literal",
+                    [
+                        "5",
+                        "6"
+                    ]
+                ]
+            ],
+            "paint": {
+                "line-color": "#596a7b",
+                "line-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    8,
+                    0.24,
+                    12,
+                    0.42,
+                    15,
+                    0.28
+                ],
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    8,
+                    0.45,
+                    12,
+                    0.85,
+                    15,
+                    1.2
+                ],
+                "line-dasharray": [
+                    2.0,
+                    1.6
+                ]
+            }
+        },
+        {
+            "id": "boundary-local",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "boundary_lines",
+            "minzoom": 12,
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "admin_level"
+                ],
+                [
+                    "literal",
+                    [
+                        "7",
+                        "8",
+                        "9",
+                        "10"
+                    ]
+                ]
+            ],
+            "paint": {
+                "line-color": "#46596b",
+                "line-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    12,
+                    0.16,
+                    16,
+                    0.34
+                ],
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    12,
+                    0.35,
+                    16,
+                    0.85
+                ],
+                "line-dasharray": [
+                    1.2,
+                    1.4
+                ]
+            }
+        },
+        {
+            "id": "roads-trunk-glow",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "roads",
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "highway"
+                ],
+                [
+                    "literal",
+                    [
+                        "trunk",
+                        "trunk_link"
+                    ]
+                ]
+            ],
+            "paint": {
+                "line-color": "#fff3de",
+                "line-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    5,
+                    0.10,
+                    10,
+                    0.16,
+                    15,
+                    0.20
+                ],
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    5,
+                    1.5,
+                    10,
+                    3.2,
+                    15,
+                    6.6
+                ]
+            }
+        },
+        {
+            "id": "roads-trunk",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "roads",
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "highway"
+                ],
+                [
+                    "literal",
+                    [
+                        "trunk",
+                        "trunk_link"
+                    ]
+                ]
+            ],
+            "paint": {
+                "line-color": "#f3ecdf",
+                "line-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    5,
+                    0.88,
+                    10,
+                    0.92,
+                    15,
+                    1.0
+                ],
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    5,
+                    0.7,
+                    10,
+                    1.9,
+                    15,
+                    4.1
+                ]
+            }
+        },
+        {
+            "id": "roads-primary",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "roads",
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "highway"
+                ],
+                [
+                    "literal",
+                    [
+                        "primary",
+                        "primary_link"
+                    ]
+                ]
+            ],
+            "paint": {
+                "line-color": "#c7d0d9",
+                "line-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    5,
+                    0.72,
+                    10,
+                    0.82,
+                    15,
+                    0.95
+                ],
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    5,
+                    0.42,
+                    10,
+                    1.15,
+                    15,
+                    2.55
+                ]
+            }
+        },
+        {
+            "id": "roads-secondary",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "roads",
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "highway"
+                ],
+                [
+                    "literal",
+                    [
+                        "secondary",
+                        "secondary_link",
+                        "tertiary",
+                        "tertiary_link"
+                    ]
+                ]
+            ],
+            "paint": {
+                "line-color": "#75808d",
+                "line-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    5,
+                    0.18,
+                    10,
+                    0.38,
+                    15,
+                    0.78
+                ],
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    5,
+                    0.12,
+                    10,
+                    0.45,
+                    15,
+                    1.35
+                ]
+            }
+        },
+        {
+            "id": "roads-local",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "roads",
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "highway"
+                ],
+                [
+                    "literal",
+                    [
+                        "residential",
+                        "living_street",
+                        "service"
+                    ]
+                ]
+            ],
+            "paint": {
+                "line-color": "#44505c",
+                "line-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    11,
+                    0.10,
+                    15,
+                    0.46
+                ],
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    11,
+                    0.15,
+                    15,
+                    0.74
+                ]
+            }
+        },
+        {
+            "id": "railways-tunnel",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "railways",
+            "minzoom": 9,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "tunnel"
+                ],
+                ""
+            ],
+            "paint": {
+                "line-color": "#52606d",
+                "line-opacity": 0.35,
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    9,
+                    0.5,
+                    15,
+                    1.3
+                ],
+                "line-dasharray": [
+                    1.2,
+                    1.2
+                ]
+            }
+        },
+        {
+            "id": "railways",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "railways",
+            "minzoom": 9,
+            "filter": [
+                "==",
+                [
+                    "get",
+                    "tunnel"
+                ],
+                ""
+            ],
+            "paint": {
+                "line-color": "#7d8994",
+                "line-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    9,
+                    0.38,
+                    15,
+                    0.72
+                ],
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    9,
+                    0.45,
+                    15,
+                    1.25
+                ],
+                "line-dasharray": [
+                    0.2,
+                    1.6
+                ]
+            }
+        },
+        {
+            "id": "detailed-road-tunnels",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "detailed_roads",
+            "minzoom": 11,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "tunnel"
+                ],
+                ""
+            ],
+            "paint": {
+                "line-color": "#617080",
+                "line-opacity": 0.32,
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    11,
+                    0.7,
+                    16,
+                    2.4
+                ],
+                "line-dasharray": [
+                    1.1,
+                    1.1
+                ]
+            }
+        },
+        {
+            "id": "detailed-road-major-casing",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "detailed_roads",
+            "filter": [
+                "all",
+                [
+                    "==",
+                    [
+                        "get",
+                        "tunnel"
+                    ],
+                    ""
+                ],
+                [
+                    "in",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    [
+                        "literal",
+                        [
+                            "motorway",
+                            "motorway_link",
+                            "trunk",
+                            "trunk_link",
+                            "primary",
+                            "primary_link"
+                        ]
+                    ]
+                ]
+            ],
+            "paint": {
+                "line-color": "#070b10",
+                "line-opacity": 0.82,
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    8,
+                    1.3,
+                    12,
+                    3.1,
+                    16,
+                    7.0
+                ]
+            }
+        },
+        {
+            "id": "detailed-road-major",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "detailed_roads",
+            "filter": [
+                "all",
+                [
+                    "==",
+                    [
+                        "get",
+                        "tunnel"
+                    ],
+                    ""
+                ],
+                [
+                    "in",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    [
+                        "literal",
+                        [
+                            "motorway",
+                            "motorway_link",
+                            "trunk",
+                            "trunk_link",
+                            "primary",
+                            "primary_link"
+                        ]
+                    ]
+                ]
+            ],
+            "paint": {
+                "line-color": [
+                    "match",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    [
+                        "motorway",
+                        "motorway_link",
+                        "trunk",
+                        "trunk_link"
+                    ],
+                    "#f4eadb",
+                    "#cfd8e3"
+                ],
+                "line-opacity": 0.96,
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    8,
+                    0.7,
+                    12,
+                    1.8,
+                    16,
+                    4.6
+                ]
+            }
+        },
+        {
+            "id": "detailed-road-medium-casing",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "detailed_roads",
+            "minzoom": 10,
+            "filter": [
+                "all",
+                [
+                    "==",
+                    [
+                        "get",
+                        "tunnel"
+                    ],
+                    ""
+                ],
+                [
+                    "in",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    [
+                        "literal",
+                        [
+                            "secondary",
+                            "secondary_link",
+                            "tertiary",
+                            "tertiary_link",
+                            "unclassified",
+                            "residential"
+                        ]
+                    ]
+                ]
+            ],
+            "paint": {
+                "line-color": "#070b10",
+                "line-opacity": 0.72,
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    10,
+                    0.9,
+                    13,
+                    1.8,
+                    16,
+                    4.4
+                ]
+            }
+        },
+        {
+            "id": "detailed-road-medium",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "detailed_roads",
+            "minzoom": 10,
+            "filter": [
+                "all",
+                [
+                    "==",
+                    [
+                        "get",
+                        "tunnel"
+                    ],
+                    ""
+                ],
+                [
+                    "in",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    [
+                        "literal",
+                        [
+                            "secondary",
+                            "secondary_link",
+                            "tertiary",
+                            "tertiary_link",
+                            "unclassified",
+                            "residential"
+                        ]
+                    ]
+                ]
+            ],
+            "paint": {
+                "line-color": [
+                    "match",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    [
+                        "secondary",
+                        "secondary_link"
+                    ],
+                    "#8995a2",
+                    [
+                        "tertiary",
+                        "tertiary_link"
+                    ],
+                    "#6f7d8a",
+                    "#4f5d6b"
+                ],
+                "line-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    10,
+                    0.38,
+                    14,
+                    0.78,
+                    16,
+                    0.92
+                ],
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    10,
+                    0.35,
+                    13,
+                    0.9,
+                    16,
+                    2.8
+                ]
+            }
+        },
+        {
+            "id": "detailed-road-service-casing",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "detailed_roads",
+            "minzoom": 14,
+            "filter": [
+                "all",
+                [
+                    "==",
+                    [
+                        "get",
+                        "tunnel"
+                    ],
+                    ""
+                ],
+                [
+                    "in",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    [
+                        "literal",
+                        [
+                            "living_street",
+                            "service",
+                            "road",
+                            "track"
+                        ]
+                    ]
+                ]
+            ],
+            "paint": {
+                "line-color": "#070b10",
+                "line-opacity": 0.62,
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    14,
+                    1.1,
+                    16,
+                    2.7
+                ]
+            }
+        },
+        {
+            "id": "detailed-road-service",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "detailed_roads",
+            "minzoom": 14,
+            "filter": [
+                "all",
+                [
+                    "==",
+                    [
+                        "get",
+                        "tunnel"
+                    ],
+                    ""
+                ],
+                [
+                    "in",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    [
+                        "literal",
+                        [
+                            "living_street",
+                            "service",
+                            "road",
+                            "track"
+                        ]
+                    ]
+                ]
+            ],
+            "paint": {
+                "line-color": [
+                    "match",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    "track",
+                    "#65715d",
+                    "#3f4b58"
+                ],
+                "line-opacity": 0.72,
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    14,
+                    0.55,
+                    16,
+                    1.65
+                ]
+            }
+        },
+        {
+            "id": "tracks-dashed",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "detailed_roads",
+            "minzoom": 14,
+            "filter": [
+                "==",
+                [
+                    "get",
+                    "highway"
+                ],
+                "track"
+            ],
+            "paint": {
+                "line-color": "#8a977b",
+                "line-opacity": 0.7,
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    14,
+                    0.65,
+                    16,
+                    1.7
+                ],
+                "line-dasharray": [
+                    2.0,
+                    1.4
+                ]
+            }
+        },
+        {
+            "id": "paths",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "path_lines",
+            "minzoom": 14,
+            "paint": {
+                "line-color": [
+                    "match",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    "cycleway",
+                    "#5bb3a8",
+                    "steps",
+                    "#8f9aa5",
+                    "#8a977b"
+                ],
+                "line-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    14,
+                    0.48,
+                    16,
+                    0.78
+                ],
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    14,
+                    0.45,
+                    16,
+                    1.25
+                ],
+                "line-dasharray": [
+                    "match",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    "steps",
+                    [
+                        "literal",
+                        [
+                            0.4,
+                            0.9
+                        ]
+                    ],
+                    [
+                        "literal",
+                        [
+                            1.4,
+                            1.2
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "id": "bridge-highlight",
+            "type": "line",
+            "source": "pupumap_vector",
+            "source-layer": "detailed_roads",
+            "minzoom": 12,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "bridge"
+                ],
+                ""
+            ],
+            "paint": {
+                "line-color": "#f7f2e8",
+                "line-opacity": 0.32,
+                "line-width": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    12,
+                    1.5,
+                    16,
+                    5.5
+                ]
+            }
+        },
+        {
+            "id": "poi-hospital-dots",
+            "type": "circle",
+            "source": "pupumap_vector",
+            "source-layer": "pois",
+            "minzoom": 12,
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "amenity"
+                ],
+                [
+                    "literal",
+                    [
+                        "hospital",
+                        "clinic",
+                        "doctors",
+                        "pharmacy"
+                    ]
+                ]
+            ],
+            "paint": {
+                "circle-color": "#27d4ff",
+                "circle-radius": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    12,
+                    3.2,
+                    16,
+                    5.6
+                ],
+                "circle-stroke-color": "#06131a",
+                "circle-stroke-width": 1.4,
+                "circle-opacity": 0.92
+            }
+        },
+        {
+            "id": "poi-school-dots",
+            "type": "circle",
+            "source": "pupumap_vector",
+            "source-layer": "pois",
+            "minzoom": 13,
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "amenity"
+                ],
+                [
+                    "literal",
+                    [
+                        "school",
+                        "college",
+                        "university",
+                        "library"
+                    ]
+                ]
+            ],
+            "paint": {
+                "circle-color": "#ffd166",
+                "circle-radius": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    13,
+                    3.0,
+                    16,
+                    5.0
+                ],
+                "circle-stroke-color": "#161106",
+                "circle-stroke-width": 1.3,
+                "circle-opacity": 0.9
+            }
+        },
+        {
+            "id": "poi-fuel-dots",
+            "type": "circle",
+            "source": "pupumap_vector",
+            "source-layer": "pois",
+            "minzoom": 13,
+            "filter": [
+                "==",
+                [
+                    "get",
+                    "amenity"
+                ],
+                "fuel"
+            ],
+            "paint": {
+                "circle-color": "#ff7043",
+                "circle-radius": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    13,
+                    3.1,
+                    16,
+                    5.2
+                ],
+                "circle-stroke-color": "#190b06",
+                "circle-stroke-width": 1.3,
+                "circle-opacity": 0.9
+            }
+        },
+        {
+            "id": "poi-food-dots",
+            "type": "circle",
+            "source": "pupumap_vector",
+            "source-layer": "pois",
+            "minzoom": 14,
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "amenity"
+                ],
+                [
+                    "literal",
+                    [
+                        "restaurant",
+                        "fast_food",
+                        "cafe",
+                        "bar"
+                    ]
+                ]
+            ],
+            "paint": {
+                "circle-color": "#ff9f43",
+                "circle-radius": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    14,
+                    2.8,
+                    16,
+                    4.7
+                ],
+                "circle-stroke-color": "#160c04",
+                "circle-stroke-width": 1.2,
+                "circle-opacity": 0.88
+            }
+        },
+        {
+            "id": "poi-shop-dots",
+            "type": "circle",
+            "source": "pupumap_vector",
+            "source-layer": "pois",
+            "minzoom": 15,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "shop"
+                ],
+                ""
+            ],
+            "paint": {
+                "circle-color": "#f6b756",
+                "circle-radius": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    15,
+                    2.7,
+                    16,
+                    4.4
+                ],
+                "circle-stroke-color": "#171005",
+                "circle-stroke-width": 1.1,
+                "circle-opacity": 0.84
+            }
+        },
+        {
+            "id": "poi-railway-dots",
+            "type": "circle",
+            "source": "pupumap_vector",
+            "source-layer": "pois",
+            "minzoom": 12,
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "railway"
+                ],
+                [
+                    "literal",
+                    [
+                        "station",
+                        "halt",
+                        "tram_stop",
+                        "subway_entrance"
+                    ]
+                ]
+            ],
+            "paint": {
+                "circle-color": "#b18cff",
+                "circle-radius": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    12,
+                    3.2,
+                    16,
+                    5.5
+                ],
+                "circle-stroke-color": "#10091f",
+                "circle-stroke-width": 1.4,
+                "circle-opacity": 0.9
+            }
+        },
+        {
+            "id": "park-dots",
+            "type": "circle",
+            "source": "pupumap_vector",
+            "source-layer": "park_labels",
+            "minzoom": 13,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "name"
+                ],
+                ""
+            ],
+            "paint": {
+                "circle-color": "#62d97b",
+                "circle-radius": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    13,
+                    2.8,
+                    16,
+                    4.8
+                ],
+                "circle-stroke-color": "#071707",
+                "circle-stroke-width": 1.2,
+                "circle-opacity": 0.82
+            }
+        },
+        {
+            "id": "landmark-dots",
+            "type": "circle",
+            "source": "pupumap_vector",
+            "source-layer": "landmark_labels",
+            "minzoom": 12,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "name"
+                ],
+                ""
+            ],
+            "paint": {
+                "circle-color": "#ffe08a",
+                "circle-radius": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    12,
+                    3.0,
+                    16,
+                    5.2
+                ],
+                "circle-stroke-color": "#171104",
+                "circle-stroke-width": 1.3,
+                "circle-opacity": 0.88
+            }
+        },
+        {
+            "id": "landmark-area-dots",
+            "type": "circle",
+            "source": "pupumap_vector",
+            "source-layer": "landmark_area_labels",
+            "minzoom": 12,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "name"
+                ],
+                ""
+            ],
+            "paint": {
+                "circle-color": "#ffe08a",
+                "circle-radius": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    12,
+                    3.0,
+                    16,
+                    5.2
+                ],
+                "circle-stroke-color": "#171104",
+                "circle-stroke-width": 1.3,
+                "circle-opacity": 0.82
+            }
+        },
+        {
+            "id": "water-labels",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "water_labels",
+            "minzoom": 8,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "name"
+                ],
+                ""
+            ],
+            "layout": {
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Italic"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    8,
+                    10,
+                    14,
+                    13
+                ],
+                "text-anchor": "center",
+                "text-padding": 5,
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#78bfe6",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.2,
+                "text-opacity": 0.9
+            }
+        },
+        {
+            "id": "park-labels",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "park_labels",
+            "minzoom": 11,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "name"
+                ],
+                ""
+            ],
+            "layout": {
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Regular"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    11,
+                    10,
+                    15,
+                    12
+                ],
+                "text-anchor": "center",
+                "text-padding": 4,
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#79c98f",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.3,
+                "text-opacity": 0.86
+            }
+        },
+        {
+            "id": "road-labels-major",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "roads",
+            "minzoom": 10,
+            "filter": [
+                "all",
+                [
+                    "!=",
+                    [
+                        "get",
+                        "name"
+                    ],
+                    ""
+                ],
+                [
+                    "in",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    [
+                        "literal",
+                        [
+                            "trunk",
+                            "trunk_link",
+                            "primary",
+                            "primary_link",
+                            "secondary",
+                            "secondary_link"
+                        ]
+                    ]
+                ]
+            ],
+            "layout": {
+                "symbol-placement": "line",
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Regular"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    10,
+                    10,
+                    16,
+                    13
+                ],
+                "text-padding": 2,
+                "text-rotation-alignment": "map",
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#dce5ee",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.45,
+                "text-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    10,
+                    0.55,
+                    14,
+                    0.92
+                ]
+            }
+        },
+        {
+            "id": "road-labels-local",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "roads",
+            "minzoom": 14,
+            "filter": [
+                "all",
+                [
+                    "!=",
+                    [
+                        "get",
+                        "name"
+                    ],
+                    ""
+                ],
+                [
+                    "in",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    [
+                        "literal",
+                        [
+                            "tertiary",
+                            "tertiary_link",
+                            "residential",
+                            "living_street",
+                            "service"
+                        ]
+                    ]
+                ]
+            ],
+            "layout": {
+                "symbol-placement": "line",
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Regular"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    14,
+                    10,
+                    16,
+                    12
+                ],
+                "text-padding": 2,
+                "text-rotation-alignment": "map",
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#b9c4cf",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.25,
+                "text-opacity": 0.82
+            }
+        },
+        {
+            "id": "detailed-road-labels-local",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "detailed_roads",
+            "minzoom": 14,
+            "filter": [
+                "all",
+                [
+                    "!=",
+                    [
+                        "get",
+                        "name"
+                    ],
+                    ""
+                ],
+                [
+                    "in",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    [
+                        "literal",
+                        [
+                            "unclassified",
+                            "residential",
+                            "living_street",
+                            "service",
+                            "road"
+                        ]
+                    ]
+                ]
+            ],
+            "layout": {
+                "symbol-placement": "line",
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Regular"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    14,
+                    10,
+                    16,
+                    12
+                ],
+                "text-padding": 2,
+                "text-rotation-alignment": "map",
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#bbc7d3",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.2,
+                "text-opacity": 0.78
+            }
+        },
+        {
+            "id": "path-labels",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "path_lines",
+            "minzoom": 15,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "name"
+                ],
+                ""
+            ],
+            "layout": {
+                "symbol-placement": "line",
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Regular"
+                ],
+                "text-size": 10,
+                "text-padding": 2,
+                "text-rotation-alignment": "map",
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#9fac94",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.1,
+                "text-opacity": 0.72
+            }
+        },
+        {
+            "id": "railway-labels",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "railways",
+            "minzoom": 12,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "name"
+                ],
+                ""
+            ],
+            "layout": {
+                "symbol-placement": "line",
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Regular"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    12,
+                    10,
+                    16,
+                    12
+                ],
+                "text-padding": 3,
+                "text-rotation-alignment": "map",
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#aab4bf",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.15,
+                "text-opacity": 0.72
+            }
+        },
+        {
+            "id": "oneway-arrows",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "detailed_roads",
+            "minzoom": 15,
+            "filter": [
+                "all",
+                [
+                    "in",
+                    [
+                        "get",
+                        "oneway"
+                    ],
+                    [
+                        "literal",
+                        [
+                            "yes",
+                            "1",
+                            "true"
+                        ]
+                    ]
+                ],
+                [
+                    "in",
+                    [
+                        "get",
+                        "highway"
+                    ],
+                    [
+                        "literal",
+                        [
+                            "primary",
+                            "primary_link",
+                            "secondary",
+                            "secondary_link",
+                            "tertiary",
+                            "tertiary_link",
+                            "unclassified",
+                            "residential",
+                            "living_street",
+                            "service"
+                        ]
+                    ]
+                ]
+            ],
+            "layout": {
+                "symbol-placement": "line",
+                "symbol-spacing": 90,
+                "text-field": ">",
+                "text-font": [
+                    "Noto Sans Bold"
+                ],
+                "text-size": 12,
+                "text-rotation-alignment": "map",
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#dbe6ef",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.0,
+                "text-opacity": 0.7
+            }
+        },
+        {
+            "id": "boundary-labels-state",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "boundary_labels",
+            "maxzoom": 11,
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "admin_level"
+                ],
+                [
+                    "literal",
+                    [
+                        "2",
+                        "4"
+                    ]
+                ]
+            ],
+            "layout": {
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Bold"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    5,
+                    11,
+                    10,
+                    14
+                ],
+                "text-transform": "uppercase",
+                "text-letter-spacing": 0.08,
+                "text-anchor": "center",
+                "text-padding": 8,
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#9baabd",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.5,
+                "text-opacity": 0.56
+            }
+        },
+        {
+            "id": "boundary-labels-district",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "boundary_labels",
+            "minzoom": 8,
+            "maxzoom": 13,
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "admin_level"
+                ],
+                [
+                    "literal",
+                    [
+                        "5",
+                        "6"
+                    ]
+                ]
+            ],
+            "layout": {
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Regular"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    8,
+                    10,
+                    13,
+                    13
+                ],
+                "text-transform": "uppercase",
+                "text-letter-spacing": 0.06,
+                "text-anchor": "center",
+                "text-padding": 7,
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#8f9fb0",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.35,
+                "text-opacity": 0.5
+            }
+        },
+        {
+            "id": "boundary-labels-local",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "boundary_labels",
+            "minzoom": 13,
+            "filter": [
+                "in",
+                [
+                    "get",
+                    "admin_level"
+                ],
+                [
+                    "literal",
+                    [
+                        "7",
+                        "8",
+                        "9",
+                        "10"
+                    ]
+                ]
+            ],
+            "layout": {
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Regular"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    13,
+                    10,
+                    16,
+                    12
+                ],
+                "text-anchor": "center",
+                "text-padding": 6,
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#8292a3",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.2,
+                "text-opacity": 0.42
+            }
+        },
+        {
+            "id": "place-labels-region",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "places",
+            "maxzoom": 7,
+            "filter": [
+                "all",
+                [
+                    "!=",
+                    [
+                        "get",
+                        "name"
+                    ],
+                    ""
+                ],
+                [
+                    "<=",
+                    [
+                        "get",
+                        "label_rank"
+                    ],
+                    4
+                ]
+            ],
+            "layout": {
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Bold"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    4,
+                    13,
+                    7,
+                    18
+                ],
+                "text-anchor": "center",
+                "text-padding": 8,
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#f4f8fc",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.8,
+                "text-opacity": 0.96
+            }
+        },
+        {
+            "id": "place-labels-city-town",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "places",
+            "minzoom": 7,
+            "maxzoom": 12,
+            "filter": [
+                "all",
+                [
+                    "!=",
+                    [
+                        "get",
+                        "name"
+                    ],
+                    ""
+                ],
+                [
+                    "<=",
+                    [
+                        "get",
+                        "label_rank"
+                    ],
+                    6
+                ]
+            ],
+            "layout": {
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Bold"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    7,
+                    13,
+                    12,
+                    17
+                ],
+                "text-anchor": "center",
+                "text-padding": 7,
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#eef5fb",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.7,
+                "text-opacity": 0.96
+            }
+        },
+        {
+            "id": "place-labels-locality",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "places",
+            "minzoom": 12,
+            "filter": [
+                "all",
+                [
+                    "!=",
+                    [
+                        "get",
+                        "name"
+                    ],
+                    ""
+                ],
+                [
+                    ">=",
+                    [
+                        "get",
+                        "label_rank"
+                    ],
+                    6
+                ]
+            ],
+            "layout": {
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Regular"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    12,
+                    12,
+                    16,
+                    14
+                ],
+                "text-anchor": "center",
+                "text-padding": 6,
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#dfe8f0",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.45,
+                "text-opacity": 0.9
+            }
+        },
+        {
+            "id": "landmark-area-labels",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "landmark_area_labels",
+            "minzoom": 11,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "name"
+                ],
+                ""
+            ],
+            "layout": {
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Bold"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    11,
+                    11,
+                    16,
+                    14
+                ],
+                "text-anchor": "center",
+                "text-padding": 6,
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#ffdf9a",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.5,
+                "text-opacity": 0.92
+            }
+        },
+        {
+            "id": "landmark-labels",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "landmark_labels",
+            "minzoom": 12,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "name"
+                ],
+                ""
+            ],
+            "layout": {
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Bold"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    12,
+                    10,
+                    16,
+                    13
+                ],
+                "text-offset": [
+                    0,
+                    0.5
+                ],
+                "text-anchor": "top",
+                "text-padding": 5,
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#ffd68a",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.4,
+                "text-opacity": 0.9
+            }
+        },
+        {
+            "id": "poi-labels-important",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "pois",
+            "minzoom": 13,
+            "filter": [
+                "all",
+                [
+                    "!=",
+                    [
+                        "get",
+                        "name"
+                    ],
+                    ""
+                ],
+                [
+                    "<=",
+                    [
+                        "get",
+                        "label_rank"
+                    ],
+                    4
+                ]
+            ],
+            "layout": {
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Regular"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    13,
+                    10,
+                    16,
+                    12
+                ],
+                "text-offset": [
+                    0,
+                    0.6
+                ],
+                "text-anchor": "top",
+                "text-padding": 4,
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#ffd68a",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.3,
+                "text-opacity": 0.9
+            }
+        },
+        {
+            "id": "poi-labels-local",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "pois",
+            "minzoom": 15,
+            "filter": [
+                "all",
+                [
+                    "!=",
+                    [
+                        "get",
+                        "name"
+                    ],
+                    ""
+                ],
+                [
+                    ">",
+                    [
+                        "get",
+                        "label_rank"
+                    ],
+                    4
+                ]
+            ],
+            "layout": {
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Regular"
+                ],
+                "text-size": 10,
+                "text-offset": [
+                    0,
+                    0.55
+                ],
+                "text-anchor": "top",
+                "text-padding": 3,
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#cfd8e3",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.2,
+                "text-opacity": 0.82
+            }
+        },
+        {
+            "id": "address-labels",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "address_labels",
+            "minzoom": 16,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "address"
+                ],
+                ""
+            ],
+            "layout": {
+                "text-field": [
+                    "get",
+                    "address"
+                ],
+                "text-font": [
+                    "Noto Sans Regular"
+                ],
+                "text-size": 9,
+                "text-anchor": "center",
+                "text-padding": 2,
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#8f9baa",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 0.9,
+                "text-opacity": 0.68
+            }
+        },
+        {
+            "id": "building-labels",
+            "type": "symbol",
+            "source": "pupumap_vector",
+            "source-layer": "building_labels",
+            "minzoom": 15,
+            "filter": [
+                "!=",
+                [
+                    "get",
+                    "name"
+                ],
+                ""
+            ],
+            "layout": {
+                "text-field": [
+                    "get",
+                    "name"
+                ],
+                "text-font": [
+                    "Noto Sans Regular"
+                ],
+                "text-size": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    15,
+                    9,
+                    16,
+                    10
+                ],
+                "text-anchor": "center",
+                "text-padding": 2,
+                "text-allow-overlap": false,
+                "text-ignore-placement": false
+            },
+            "paint": {
+                "text-color": "#aebbc8",
+                "text-halo-color": "#0a0f14",
+                "text-halo-width": 1.05,
+                "text-opacity": [
+                    "interpolate",
+                    [
+                        "linear"
+                    ],
+                    [
+                        "zoom"
+                    ],
+                    15,
+                    0.58,
+                    16,
+                    0.78
+                ]
+            }
+        }
+    ]
+}

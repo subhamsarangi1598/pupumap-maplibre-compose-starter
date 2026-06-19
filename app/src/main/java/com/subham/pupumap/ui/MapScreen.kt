@@ -353,6 +353,25 @@ fun MapScreen(
                     "Route navigation started",
                     Toast.LENGTH_SHORT
                 ).show()
+            },
+            onZoomInClick = {
+                mapHolder[0]?.let { map ->
+                    val currentZoom = map.cameraPosition.zoom
+                    map.animateCamera(CameraUpdateFactory.zoomTo(currentZoom + 1.0))
+                }
+            },
+            onZoomOutClick = {
+                mapHolder[0]?.let { map ->
+                    val currentZoom = map.cameraPosition.zoom
+                    map.animateCamera(CameraUpdateFactory.zoomTo(currentZoom - 1.0))
+                }
+            },
+            onStyleSwitchClick = {
+                Toast.makeText(
+                    context,
+                    "Style Switcher coming soon",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         )
     }

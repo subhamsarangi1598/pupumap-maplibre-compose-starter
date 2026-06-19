@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -28,15 +30,24 @@ import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -54,6 +65,7 @@ private val TextSecondary = Color(0xB8FFFFFF)
 private val NeonCyan = Color(0xFF00D9FF)
 private val AmberPin = Color(0xFFFFC857)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreenDesign(
     addressValue: String = "Finding your exact place...",
@@ -71,7 +83,10 @@ fun MapScreenDesign(
     onClearSelectedPlace: () -> Unit = {},
     onDirectionsClick: () -> Unit = {},
     onChangeRouteClick: () -> Unit = {},
-    onStartRouteClick: () -> Unit = {}
+    onStartRouteClick: () -> Unit = {},
+    onZoomInClick: () -> Unit = {},
+    onZoomOutClick: () -> Unit = {},
+    onStyleSwitchClick: () -> Unit = {}
 ) {
     val view = LocalView.current
     val density = LocalDensity.current
@@ -87,6 +102,8 @@ fun MapScreenDesign(
         topInset.toDp()
     }
     var isSearchOpen by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -102,11 +119,14 @@ fun MapScreenDesign(
                 onSearchClick = { isSearchOpen = true }
             )
 
-            CurrentLocationButton(
+            MapControlsColumn(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(bottom = 80.dp),
-                onClick = onCurrentLocationClick
+                    .padding(bottom = 120.dp),
+                onCurrentLocationClick = onCurrentLocationClick,
+                onZoomInClick = onZoomInClick,
+                onZoomOutClick = onZoomOutClick,
+                onStyleSwitchClick = onStyleSwitchClick
             )
 
             when {
@@ -133,14 +153,33 @@ fun MapScreenDesign(
                 }
 
                 else -> {
-                    SelectedPlaceSheet(
-                        selectedPlace = selectedPlace,
-                        distanceValue = selectedPlaceDistance,
-                        onDirectionsClick = onDirectionsClick,
-                        onClearClick = onClearSelectedPlace,
-                        modifier = Modifier.align(Alignment.BottomCenter)
-                    )
+                    // Replaced static SelectedPlaceSheet with ModalBottomSheet below
                 }
+            }
+        }
+
+        if (selectedPlace != null && !isRoutePreviewOpen) {
+            ModalBottomSheet(
+                onDismissRequest = {
+                    onClearSelectedPlace()
+                },
+                sheetState = sheetState,
+                containerColor = Color(0xFF121821),
+                scrimColor = Color.Black.copy(alpha = 0.3f),
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+            ) {
+                SelectedPlaceSheetExpandedContent(
+                    selectedPlace = selectedPlace,
+                    distanceValue = selectedPlaceDistance,
+                    onDirectionsClick = onDirectionsClick,
+                    onClearClick = {
+                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                            if (!sheetState.isVisible) {
+                                onClearSelectedPlace()
+                            }
+                        }
+                    }
+                )
             }
         }
 
@@ -164,10 +203,49 @@ private fun TopSearchOverlay(
     modifier: Modifier = Modifier,
     onSearchClick: () -> Unit
 ) {
-    SearchBar(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onSearchClick
-    )
+    Column(modifier = modifier.fillMaxWidth()) {
+        SearchBar(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onSearchClick
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        CategoryFilters()
+    }
+}
+
+@Composable
+private fun CategoryFilters() {
+    val categories = listOf("All", "Food", "Parks", "Museums", "Shopping", "Hotels")
+    var selectedCategory by remember { mutableStateOf("All") }
+
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        items(categories) { category ->
+            val isSelected = category == selectedCategory
+            val bgColor = if (isSelected) Color(0xFF0288D1) else GlassPanelSoft
+            val borderColor = if (isSelected) Color(0xFF81D4FA) else GlassBorder
+            val textColor = if (isSelected) Color.White else TextPrimary
+
+            Box(
+                modifier = Modifier
+                    .background(color = bgColor, shape = RoundedCornerShape(16.dp))
+                    .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { selectedCategory = category }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = category,
+                    color = textColor,
+                    fontSize = 13.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -543,7 +621,7 @@ private fun RouteMetric(
 }
 
 @Composable
-private fun SelectedPlaceSheet(
+private fun SelectedPlaceSheetExpandedContent(
     selectedPlace: SearchResult,
     distanceValue: String,
     onDirectionsClick: () -> Unit,
@@ -567,37 +645,43 @@ private fun SelectedPlaceSheet(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                color = GlassPanel,
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-            )
-            .border(
-                width = 1.dp,
-                color = Color(0x44FFC857),
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-            )
             .padding(
                 start = 18.dp,
-                top = 14.dp,
+                top = 0.dp,
                 end = 18.dp,
                 bottom = 16.dp + navBarPadding
             )
     ) {
+        // Image Placeholder
         Box(
             modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .size(width = 42.dp, height = 4.dp)
+                .fillMaxWidth()
+                .height(160.dp)
                 .background(
-                    color = Color(0x44FFC857),
-                    shape = RoundedCornerShape(999.dp)
-                )
-        )
+                    color = Color(0x33FFFFFF),
+                    shape = RoundedCornerShape(16.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Place,
+                contentDescription = null,
+                tint = Color(0x88FFFFFF),
+                modifier = Modifier.size(48.dp)
+            )
+            Text(
+                text = "Cover Image",
+                color = Color(0x88FFFFFF),
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 70.dp)
+            )
+        }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             SelectedPlaceBadge()
 
@@ -605,43 +689,43 @@ private fun SelectedPlaceSheet(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Selected Place",
-                    color = TextPrimary,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Spacer(modifier = Modifier.height(7.dp))
-
-                Text(
                     text = selectedPlace.name,
                     color = TextPrimary,
-                    fontSize = 15.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2
                 )
 
-                Spacer(modifier = Modifier.height(5.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
                     text = "${selectedPlace.subtitle} - ${selectedPlace.source}",
                     color = TextSecondary,
-                    fontSize = 12.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
-                    maxLines = 1
+                    maxLines = 2
                 )
 
-                Spacer(modifier = Modifier.height(5.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = distanceValue,
-                    color = AmberPin,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.Directions,
+                        contentDescription = null,
+                        tint = AmberPin,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = distanceValue,
+                        color = AmberPin,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(5.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
                     text = formatSelectedPlaceCoordinates(selectedPlace),
@@ -650,10 +734,19 @@ private fun SelectedPlaceSheet(
                     fontWeight = FontWeight.Medium,
                     maxLines = 1
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "A beautiful and prominent location found in your search results. Come visit and explore the surroundings.",
+                    color = TextSecondary,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -677,7 +770,7 @@ private fun SelectedPlaceSheet(
             )
 
             PlaceActionButton(
-                label = "Clear",
+                label = "Close",
                 icon = {
                     Icon(
                         imageVector = Icons.Outlined.Close,
@@ -773,14 +866,82 @@ private fun PlaceActionButton(
 }
 
 @Composable
-private fun CurrentLocationButton(
+private fun MapControlsColumn(
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onCurrentLocationClick: () -> Unit,
+    onZoomInClick: () -> Unit,
+    onZoomOutClick: () -> Unit,
+    onStyleSwitchClick: () -> Unit
 ) {
-    Box(modifier = modifier) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Column(
+            modifier = Modifier
+                .background(
+                    color = GlassPanelSoft,
+                    shape = RoundedCornerShape(26.dp)
+                )
+                .border(
+                    width = 1.dp,
+                    color = GlassBorder,
+                    shape = RoundedCornerShape(26.dp)
+                )
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
+                    .clickable(onClick = onZoomInClick),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Add,
+                    contentDescription = "Zoom In",
+                    tint = TextPrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .width(36.dp)
+                    .height(1.dp)
+                    .background(Color(0x33FFFFFF))
+                    .align(Alignment.CenterHorizontally)
+            )
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp))
+                    .clickable(onClick = onZoomOutClick),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Remove,
+                    contentDescription = "Zoom Out",
+                    tint = TextPrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
         CircleIconButton(
             size = 52.dp,
-            modifier = Modifier.clickable(onClick = onClick)
+            modifier = Modifier.clickable(onClick = onStyleSwitchClick)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Layers,
+                contentDescription = "Map Style",
+                tint = TextPrimary,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+
+        CircleIconButton(
+            size = 52.dp,
+            modifier = Modifier.clickable(onClick = onCurrentLocationClick)
         ) {
             Icon(
                 imageVector = Icons.Outlined.MyLocation,
